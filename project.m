@@ -1,4 +1,14 @@
-% Model reproduced from Ghita et al
+% Cornell University
+% Department of Chemical and Biomolecular Engineering, Faculty of
+% Engineering
+% Spring 2024
+% CHEME 6430: Advanced Principals of Biomolecular Engineering
+% Instructors: Christopher Alabi and Matthew Paszek
+% Authors:
+% Deepali Venkatesh Prasanna, and Kellie Chong
+
+
+% Mathematical model adopted from Ghita et al. (2022)
 
 % This model describes:
 % (i) the proliferation of the tumor, 
@@ -25,7 +35,7 @@ ylim([0 0.3])
 xlim([0 30])
 xlabel('Time (days)')
 ylabel('Concentration (mg/mL)')
-tilte('Chemotherapy and Immunotherapy Drug Profiles')
+title('Chemotherapy and Immunotherapy Drug Profiles')
 
 %%
 close all
@@ -39,7 +49,6 @@ xlim([0 10])
 %%
 clc
 clear all
-close all
 
 a = 0.693; % tumor growth rate in units of /day
 n = 0.1; % necrosis rate in units of /day
@@ -73,20 +82,22 @@ Edall = 0.715; % Assumption #1: assume this to be 0.75
 E = (Etall+Edall)/2;
 Effect = I.^gamma/(1+I.^gamma); % Effect
 
-tend = 110;
-x0 = zeros(1, 8);
-% for patient 008: initial total tumor volume = 1.8e4 (1.6e4 and 0.2e4 x1, x2, respectively)
-x0(1) = 600;
-x0 = [16000, 2000, 0, 0, 0, 0, 0, 0];
-% x0 = [500, 100, 0, 0, 0, 0, 0, 0];
-protocol = 2;
+tend = 200;
+
+% uncomment the line corresponding to the patient of interest
+% x0 = [500, 100, 0, 0, 0, 0, 0, 0]; % Patient ID 001
+% x0 = [16000, 2000, 0, 0, 0, 0, 0, 0]; % Patient ID 008
+% x0 = [5200, 200, 0, 0, 0, 0, 0, 0]; % Patient ID 011
+x0 = [1400, 100, 0, 0, 0, 0, 0, 0]; % Patient ID 018
+protocol = 1;
 
 %% Original model
 
 figure();
 hold on
 Emaxa = 0.5;
-[t, x] = ode23s(@(t, x)ghita(t, x, a, n, ca, ci, C50r, E, Emaxa, Emaxi, Emaxr, protocol), [0 tend], x0);
+[t, x] = ode23s(@(t, x)ghita(t, x, a, n, ca, ci, C50a, C50i, C50r, sigma, ...
+    gamma, Emaxa, Emaxi, Emaxr, protocol), [0 tend], x0);
 total = x(:, 1)+x(:, 2);
 plot(t, total, 'LineWidth', 3, 'Color', 'blue') % total tumor volume
 plot(t, x(:, 2), 'LineWidth', 3, 'Color', 'red') % necrotic tumor volume
@@ -104,9 +115,12 @@ hold off
 
 %% Extended model
 
+tend = 173;
+ts = linspace(1, 200, 200);
 figure()
-[t_extended, x_extended] = ode23s(@(t, x)extended_ghita(t, x, a, n, ca, ci, C50r, E, Emaxa, Emaxi, Emaxr, protocol), ...
-    [0 tend], x0);
+[t_extended, x_extended] = ode23s(@(t, x)extended_ghita(t, x, a, n, ca, ci, C50a, C50i, C50r, E, ...
+    sigma, gamma, Emaxa, Emaxi, Emaxr, protocol), ...
+    ts, x0);
 total = x_extended(:, 1)+x_extended(:, 2);
 hold on
 plot(t_extended, total, 'LineWidth', 3, 'Color', 'blue') % total tumor volume
@@ -114,7 +128,7 @@ plot(t_extended, x_extended(:, 2), 'LineWidth', 3, 'Color', 'red') % necrotic tu
 plot(t_extended, x_extended(:, 1), 'LineWidth', 3, 'Color', '#EDB120') % proliferating tumor volume
 
 title('Extended Tumor Volume Model')
-subtitle('Patient ID 001')
+subtitle('Patient ID 018')
 legend('Total Tumor Volume', 'Necrotic Tumor Volume', 'Proliferating Tumor Volume');
 xlabel('Time (days)')
 ylabel('Relative Tumor Volume (mm^3)')
@@ -149,9 +163,11 @@ function ur = radiotherapy(t, protocol)
 end
 
 
-function dxdt = ghita(t, x, a, n, ca, ci, C50r, E, Eta, Eti, Etr, protocol)
+function dxdt = ghita(t, x, a, n, ca, ci, C50a, C50i, C50r, sigma, gamma, Eta, Eti, Etr, protocol)
 % dxdt is the time derivative vector: [x1; x2; x3; x3e; x4; x4e; x5; x5e]
 
+% create weekly repeating immuotherapy and chemotherapy dosages over the
+% timespan of the simulation
 max_days = 200;
 ur = zeros(1, max_days);
 
@@ -170,6 +186,12 @@ else
 end
 
 ur = ur(floor(t)+1);
+una = x(3)/C50a;
+uni = x(5)/C50i;
+unr = x(7)/C50r;
+
+I = una + uni + sigma.*una.*uni;
+E = I.^gamma/(1+I.^gamma);
 
 % cr is the clearance rate on the Michaelis-Menten kinetics:
 cr = x(1)*x(3)/(C50r+x(3));
@@ -187,9 +209,10 @@ dxdt = [dx1; dx2; dx3; dxe3; dx4; dxe4; dx5; dxe5];
 end
 
 
-function dxdt = extended_ghita(t, x, a, n, ca, ci, C50r, E, Eta, Eti, Etr, protocol)
+function dxdt = extended_ghita(t, x, a, n, ca, ci, C50a, C50i, C50r, E, ...
+    sigma, gamma, Eta, Eti, Etr, protocol)
 % dxdt is the time derivative vector: [x1; x2; x3; x3e; x4; x4e; x5; x5e]
-max_days = 200;
+max_days = 220;
 ur = zeros(1, max_days);
 % define the reoccuring ui, ua drug dosages
 yui = [0.2 0 0 0 0 0 0];
@@ -201,7 +224,7 @@ ui_t = ui(floor(t)+1);
 ua_t = ua(floor(t)+1);
 
 if protocol == 1
-    ur([1, 3, 6]) = 18;
+    ur([1, 3, 7]) = 18;
 else
     ur([1, 3, 6, 8]) = 12;
 end
@@ -210,15 +233,15 @@ ur = ur(floor(t)+1);
 % cr is the clearance rate on the Michaelis-Menten kinetics:
 cr = x(1)*x(3)/(C50r+x(3));
 
+% Consider trapping effects of the drugs
+E_decay = E*(1-3e-5*t);
 
-% Consider trapping effects of the immunogenic drug
-ui_decay = ui_t*exp(-0.003*t);
+% Consider the decay of the tumor necrosis rate over time due to multidrug
+% resistance development or tumor mutation
+n_decay = n*(1-0.0025*t);
 
-n_decay = n*(1-0.002*t);
-
-
-dx1 = (a-n_decay)*x(1) - E*x(1);
-dx2 = n_decay*x(1) + E*x(1) - x(2); % necrotic tumor volume
+dx1 = (a-n_decay)*x(1) - E_decay*x(1); % proliferating tumor volume
+dx2 = n_decay*x(1) + E_decay*x(1) - 0.5*x(2); % necrotic tumor volume
 dx3 = -ca*x(3) + ua_t; % anticancer drug concentration level
 dxe3 = -ca*x(4) + Eta*x(3); % effective drug concentration of anticancer drug
 dx4 = -ci*x(5) + ui_t;  % inhibitor serum level
