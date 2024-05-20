@@ -4,11 +4,13 @@ Non Small Cell Lung Cancer is a highly malignant form of lung cancer that takes 
 
 ## PK/PD Model Simulation Usage 
 
-The file project.m can be used to produce the plots and simulations from Ghita et al.'s (2022) paper. 
+The file project.m can be used to produce the plots and simulations from Ghita et al.'s (2022) paper. The proposed system is shown in the figure below.
 The first two blocks describe the immunotherapy, and chemotherapy (anti-angiogenesis) dose response curves over time in days. An equivalent figure is produced from the second block for radiotherapy.
+![image](https://github.com/KellieChong/PKPD_tumor_model/assets/56052705/a631b67c-faf2-4c2f-a4fe-3abcafd974ad)
+
 
 The following blocks are used to solve the system of ODEs for the original model and the extended model.
 
 ## Immune Response Model
 The linear quadratic immune repsonse model was originally proposed by Cho et al. (2023) The solutions to the system of ODEs from Ghita et al's model is used as an input to the immune response model and can be found in the results folder. The immune response over the simulation time span is plotted in the resultant figure along with the model's total tumor volume.
-![image](https://github.com/KellieChong/PKPD_tumor_model/assets/56052705/cea3d29c-c346-4968-9990-11f6c4134a9b)
+
